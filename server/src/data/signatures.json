@@ -1,0 +1,33 @@
+﻿[
+  {
+    "id": "sql-injection",
+    "name": "SQL Injection",
+    "severity": "high",
+    "patterns": [
+      "(?:'|%27|%2527)\\s*(?:or|and)\\s+\\d+\\s*=\\s*\\d+",
+      "\\bunion(?:\\s|\\+|%20)+(?:all(?:\\s|\\+|%20)+)?select\\b",
+      "\\bsleep\\s*\\("
+    ]
+  },
+  {
+    "id": "xss",
+    "name": "Cross-Site Scripting (XSS)",
+    "severity": "high",
+    "patterns": [
+      "<\\s*script\\b",
+      "javascript\\s*:",
+      "\\bonerror\\s*=",
+      "\\bonload\\s*="
+    ]
+  },
+  {
+    "id": "directory-traversal",
+    "name": "Directory Traversal",
+    "severity": "high",
+    "patterns": [
+      "\\.\\.[/\\\\]",
+      "%2e%2e(?:%2f|%5c)",
+      "(?:/|%2f)etc(?:/|%2f)passwd"
+    ]
+  }
+]
