@@ -4,7 +4,7 @@ dist/
 .env.*
 !.env.example
 coverage/
-*.log
 !.gitkeep
 .DS_Store
 Thumbs.db
+!sample-logs/demo.log
