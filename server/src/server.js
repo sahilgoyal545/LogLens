@@ -21,7 +21,7 @@ fs.mkdirSync(uploadDirectory, { recursive: true });
 app.use(cors({
   origin: process.env.CLIENT_ORIGIN || "http://localhost:5173"
 }));
-app.use(express.json({ limit: "100kb" }));
+app.use(express.json({ limit: "140mb" }));
 
 const storage = multer.diskStorage({
   destination: (_req, _file, callback) => {
@@ -76,6 +76,48 @@ app.post("/api/upload", upload.single("file"), (req, res) => {
     });
   } catch (error) {
     fs.promises.unlink(req.file.path).catch(() => {});
+
+    return res.status(429).json({
+      error: error.message || "Unable to create analysis job."
+    });
+  }
+});
+
+app.post("/api/upload-encoded", (req, res) => {
+  let savedPath;
+
+  try {
+    const { filename, contentBase64 } = req.body || {};
+
+    if (
+      typeof filename !== "string" ||
+      ![".log", ".txt"].includes(path.extname(filename).toLowerCase()) ||
+      typeof contentBase64 !== "string" ||
+      !contentBase64 ||
+      !/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(contentBase64)
+    ) {
+      return res.status(400).json({ error: "Invalid log upload." });
+    }
+
+    const content = Buffer.from(contentBase64, "base64");
+
+    if (content.length > 100 * 1024 * 1024) {
+      return res.status(413).json({ error: "File exceeds the 100 MB limit." });
+    }
+
+    const safeName = path.basename(filename).replace(/[^a-zA-Z0-9._-]/g, "_");
+    savedPath = path.join(uploadDirectory, `${Date.now()}-${safeName}`);
+
+    fs.writeFileSync(savedPath, content);
+
+    const job = createJob(savedPath, filename);
+
+    return res.status(202).json({
+      message: "Log file accepted for analysis.",
+      job
+    });
+  } catch (error) {
+    if (savedPath) fs.promises.unlink(savedPath).catch(() => {});
 
     return res.status(429).json({
       error: error.message || "Unable to create analysis job."

@@ -80,23 +80,45 @@ export default function App() {
       setBusy(false);
     }
   }
-
+  
   async function uploadFile(event) {
-    event.preventDefault();
+  event.preventDefault();
 
-    if (!selectedFile) {
-      setError("Choose a .log or .txt file first.");
-      return;
+  if (!selectedFile) {
+    setError("Choose a .log or .txt file first.");
+    return;
+  }
+
+  setBusy(true);
+  setError("");
+  setReport(null);
+  setJob(null);
+
+  try {
+    const bytes = new Uint8Array(await selectedFile.arrayBuffer());
+    let binary = "";
+
+    for (let i = 0; i < bytes.length; i += 32768) {
+      binary += String.fromCharCode(...bytes.subarray(i, i + 32768));
     }
 
-    const form = new FormData();
-    form.append("file", selectedFile);
+    const contentBase64 = btoa(binary);
 
-    await startJob("/api/upload", {
+    const data = await request("/api/upload-encoded", {
       method: "POST",
-      body: form,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        filename: selectedFile.name,
+        contentBase64
+      })
     });
+
+    setJob(data.job);
+  } catch (err) {
+    setError(err.message || "Could not upload the log.");
+    setBusy(false);
   }
+}
 
   async function runDemo() {
     await startJob("/api/demo", { method: "POST" });
